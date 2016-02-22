@@ -8,22 +8,25 @@ import socket
 import request
 import threading
 
+threads = {}
+
 '''
 Class used to establish new connections on separate threads
 '''
 class cThread (threading.Thread):
-	def __init__(self, c, addr):
+	def __init__(self, c, addr, user):
 		threading.Thread.__init__(self)
+		self.user = user
 		self.c = c
 		self.addr = addr
 
 	def run(self):
-		active_connection(self.c, self.addr)
+		active_connection(self.c, self.addr, self.user)
 
 '''
 Function to handle active connections and client messages
 '''
-def active_connection(c, addr):
+def active_connection(c, addr, user):
 	while True:
 		client_message = c.recv(buff).split(' ')
 		
@@ -31,8 +34,9 @@ def active_connection(c, addr):
 			print(">"+ ''.join(client_message))
 
 			if client_message[0] == "logout":
-				print "Bye..."
+				print user, "logged out. Closing connection."
 				c.close()
+				del threads[user]
 				break
 				
 			elif client_message[0] == "help":
@@ -59,38 +63,59 @@ def active_connection(c, addr):
 				output = request.Find_all_emails_by_dep(parameters)
 				output = '\n>'.join(output)
 				c.send(output)
+
+			elif client_message[0] == 'getonline':
+				output = request.get_online(threads)
+				c.send(output)
+
 			else:
 				c.send("Command not defined")
 			
 			client_message = None
 
-s = socket.socket()					# Create a socket object
-host = socket.gethostname()			# Get local machine name
-port = 12345						# Reserve a port
-buff = 4096							# Buffer size
-s.bind((host, port))				# Bind to the port
+try:
+	s = socket.socket()					# Create a socket object
+	host = 'localhost'					# Get local machine name
+	port = 60000						# Reserve a port
+	buff = 4096							# Buffer size
+	s.bind((host, port))				# Bind to the port
 
-threads = []
+	while True:
+		s.listen(5)							# Sets up and start TCP listener
+		c, addr = s.accept()				# Establish connection
+		print 'Incoming connection...'
+		user = c.recv(buff)					# Get user
+		if not request.login(user):
+			print 'Invalid username... Closing connection'
+			c.send('invalid')
+			c.close()
+			continue
+		try:
+			if user not in threads:
+				thread = cThread(c, addr, user)	# Create new thread
+				thread.start()					# Start thread
+				threads[user] = thread			# If thread started, append to list of threads
+				
+				# Print connection message
+				print user, 'connected from: ', addr
+				c.send('Welcome ' + user + '\nYou are now connected to the server!  ')
+			else:
+				print 'Duplicate login... Closing connection.'
+				c.send('duplicate')
+				c.close()
+		except:
+			print "Error: Couldn't establish new connection in thread"
 
-while True:
-	s.listen(5)						# Sets up and start TCP listener
-	
-	c, addr = s.accept()			# Establish connection
-	
-	try:
-		thread = cThread(c, addr)	# Create new thread
-		thread.start()				# Start thread
-		threads.append(thread)		# If thread started, append to list of threads
-		
-		# Print connection message
-		print 'Connected: ', addr
-		c.send('You are now connected to the server >>  ')
-	except:
-		print "Error: Couldn't establish new connection in thread"
-
-	time.sleep(0.5)
-	
-for thread in threads:		# Exit all threads
-	thread.close()
-
-c.close()					# Close the connection
+		time.sleep(0.5)
+except KeyboardInterrupt:
+	print ''
+	if threads:
+		try:
+			print 'Closing sockets...'
+			for thread in threads:
+				thread.c.close()
+		except:
+			pass
+	s.close()
+	print 'Exiting...'
+	sys.exit(0)
