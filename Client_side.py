@@ -15,7 +15,7 @@ print s.recv(buff) + "\n"
 print "|------------------------------|"
 print "|------------Client:-----------|"
 print "|-----Type-'help'-for-help-----|"
-print "|------------------------------|\n"
+print "|------------------------------|" + "\n"
 
 while True:
 	# Send input

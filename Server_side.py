@@ -4,10 +4,13 @@
 
 import sys
 import time
-import socket					# Socket module
+import socket
 import request
 import threading
 
+'''
+Class used to establish new connections on separate threads
+'''
 class cThread (threading.Thread):
 	def __init__(self, c, addr):
 		threading.Thread.__init__(self)
@@ -15,9 +18,11 @@ class cThread (threading.Thread):
 		self.addr = addr
 
 	def run(self):
-		while True:
-			active_connection(self.c, self.addr)
+		active_connection(self.c, self.addr)
 
+'''
+Function to handle active connections and client messages
+'''
 def active_connection(c, addr):
 	while True:
 		client_message = c.recv(buff).split(' ')
@@ -26,9 +31,9 @@ def active_connection(c, addr):
 			print(">"+ ''.join(client_message))
 
 			if client_message[0] == "logout":
-				s.listen(5)						# Sets up and start TCP listener
-				c, addr = s.accept()
-				print 'Connected: ', addr
+				print "Bye..."
+				c.close()
+				break
 				
 			elif client_message[0] == "help":
 				c.send('Commands>> Type `command`, `space` and input \n >>\n help\n logout\n getphone `input = ID`\n getmail1 `input = ID`\n getmail2 `input = First and last name`\n findall `input = Department ID`\n')
@@ -59,11 +64,11 @@ def active_connection(c, addr):
 			
 			client_message = None
 
-s = socket.socket()				# Create a socket object
-host = socket.gethostname()		# Get local machine name
-port = 12345					# Reserve a port
-buff = 4096						# Buffer size
-s.bind((host, port))			# Bind to the port
+s = socket.socket()					# Create a socket object
+host = socket.gethostname()			# Get local machine name
+port = 12345						# Reserve a port
+buff = 4096							# Buffer size
+s.bind((host, port))				# Bind to the port
 
 threads = []
 
@@ -86,6 +91,6 @@ while True:
 	time.sleep(0.5)
 	
 for thread in threads:		# Exit all threads
-	thread.exit()
+	thread.close()
 
 c.close()					# Close the connection
