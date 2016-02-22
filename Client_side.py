@@ -19,12 +19,13 @@ answ = s.recv(buff)
 
 if answ == 'duplicate':
 	print 'User already logged in. Exiting...'
-	sys.exit(1)
 	s.close()
+	sys.exit(1)
+	
 if answ == 'invalid':
 	print 'Username don\'t exist. Exiting...'
-	sys.exit(1)
 	s.close()
+	sys.exit(1)
 
 print "\n"
 print answ + "\n"

@@ -85,11 +85,13 @@ try:
 		c, addr = s.accept()				# Establish connection
 		print 'Incoming connection...'
 		user = c.recv(buff)					# Get user
+
 		if not request.login(user):
 			print 'Invalid username... Closing connection'
 			c.send('invalid')
 			c.close()
 			continue
+		
 		try:
 			if user not in threads:
 				thread = cThread(c, addr, user)	# Create new thread
